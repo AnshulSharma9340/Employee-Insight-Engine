@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic CSV Data Filter</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use Inter font and custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-500': '#10b981', // Emerald green
+                        'primary-600': '#059669',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for better appearance */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-1">Dynamic CSV Data Filter</h1>
+            <p class="text-gray-500">Upload a CSV file, select your filter columns, and explore the data.</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Filter Panel (Sidebar) -->
+            <aside class="lg:w-1/4 p-4 bg-white rounded-xl shadow-lg h-full lg:sticky lg:top-8 custom-scrollbar overflow-y-auto max-h-[85vh]">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <!-- Icon: Upload -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-primary-500">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Data Upload
+                </h2>
+                
+                <!-- File Upload Input -->
+                <div class="mb-6 p-4 bg-primary-50 rounded-lg border-2 border-dashed border-primary-200">
+                    <label for="csv-file-input" class="block text-sm font-medium text-primary-800 mb-2">Select CSV File</label>
+                    <input type="file" id="csv-file-input" accept=".csv" class="w-full text-sm text-gray-700
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-primary-100 file:text-primary-700
+                        hover:file:bg-primary-200"
+                    >
+                </div>
+
+                <!-- Column Selection Panel (Hidden until data is loaded) -->
+                <div id="column-selection-panel" class="hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <!-- Icon: Columns -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-primary-500">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line>
+                        </svg>
+                        Select Filter Columns
+                    </h2>
+                    <div id="column-selector-body" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm max-h-64 overflow-y-auto space-y-2">
+                        <!-- Column selection checkboxes will be inserted here -->
+                    </div>
+                </div>
+
+                <div id="filter-panel" class="hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <!-- Icon: Filter -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-primary-500">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                        </svg>
+                        Active Filters
+                    </h2>
+                    <button id="reset-button" class="w-full mb-4 px-3 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 shadow-md">
+                        Reset All Filters
+                    </button>
+                    <!-- Filter Sections will be dynamically inserted here -->
+                </div>
+            </aside>
+
+            <!-- Results Area -->
+            <main class="lg:w-3/4">
+                <div id="loading-message" class="hidden text-center p-8 bg-yellow-100 border border-yellow-300 rounded-xl shadow-lg">
+                    <p class="text-lg font-semibold text-yellow-800">Please upload a CSV file to begin.</p>
+                </div>
+
+                <div id="data-view" class="hidden">
+                    <div class="bg-white p-4 rounded-xl shadow-lg mb-6 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800">Results</h2>
+                        <p id="result-count" class="text-sm font-medium text-primary-600 bg-primary-50 p-1.5 rounded-full px-3"></p>
+                    </div>
+
+                    <div id="results-container" class="space-y-4">
+                        <!-- Table for Desktop -->
+                        <div class="hidden md:block overflow-x-auto bg-white rounded-xl shadow-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr id="data-table-headers">
+                                        <!-- Headers will be dynamically inserted here -->
+                                    </tr>
+                                </thead>
+                                <tbody id="data-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Data rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Cards for Mobile -->
+                        <div id="data-cards-container" class="md:hidden space-y-3">
+                            <!-- Data cards will be inserted here -->
+                        </div>
+
+                        <div id="no-results-message" class="hidden text-center p-8 bg-white rounded-xl shadow-lg">
+                            <p class="text-lg font-semibold text-gray-600">No records match the current filters.</p>
+                            <p class="text-sm text-gray-400 mt-1">Try selecting different filter options.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let globalData = [];
+        let allHeaders = []; // All headers from the uploaded file
+        let allUniqueValues = {}; // All unique values for all headers
+        let selectedFilterColumns = []; // Columns the user selects to filter on
+
+        // Columns that are always displayed in the results table for context (if they exist in the data)
+        const DEFAULT_DISPLAY_COLUMNS = ['EmpID', 'FirstName', 'LastName', 'Title', 'EmployeeStatus', 'DepartmentType', 'Current Employee Rating', 'Overall Satisfaction'];
+
+        // --- CORE UTILITY FUNCTIONS ---
+
+        /**
+         * Cleans up a header or value string (trims, standardizes case, removes extra spaces).
+         * @param {string} str - The string to clean.
+         * @returns {string} - The cleaned string.
+         */
+        function cleanString(str) {
+            return (str || '').trim().replace(/\s{2,}/g, ' ');
+        }
+
+        /**
+         * Parses CSV string data into an array of JavaScript objects.
+         * @param {string} csvString - The raw CSV data.
+         * @returns {Array<Object>} - Array of parsed objects.
+         */
+        function parseCSV(csvString) {
+            const lines = csvString.trim().split('\n');
+            if (lines.length <= 1) return { data: [], headers: [] };
+
+            // Get headers and clean them up
+            const headers = lines[0].split(',').map(header => cleanString(header));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length !== headers.length) continue;
+
+                const entry = {};
+                headers.forEach((header, index) => {
+                    entry[header] = cleanString(values[index]);
+                });
+                data.push(entry);
+            }
+            return { data, headers };
+        }
+
+        /**
+         * Extracts unique, sorted values for a specific column.
+         * @param {Array<Object>} data - The dataset.
+         * @param {string} column - The column name.
+         * @returns {Array<string>} - Sorted array of unique, non-empty values.
+         */
+        function getUniqueValues(data, column) {
+            const unique = new Set();
+            data.forEach(item => {
+                const value = item[column];
+                if (value && value !== 'Unknown' && value.toLowerCase() !== 'unk' && value !== '') {
+                    unique.add(value);
+                }
+            });
+            return Array.from(unique).sort((a, b) => a.localeCompare(b));
+        }
+
+        // --- RENDER & DISPLAY FUNCTIONS ---
+
+        /**
+         * Renders the filtered data into both the desktop table and mobile cards.
+         * @param {Array<Object>} data - The filtered dataset.
+         */
+        function renderResults(data) {
+            const tableHeaders = document.getElementById('data-table-headers');
+            const tableBody = document.getElementById('data-table-body');
+            const cardsContainer = document.getElementById('data-cards-container');
+            const resultCount = document.getElementById('result-count');
+            const noResults = document.getElementById('no-results-message');
+
+            tableBody.innerHTML = '';
+            cardsContainer.innerHTML = '';
+            tableHeaders.innerHTML = '';
+            resultCount.textContent = `${data.length} Records Found`;
+
+            if (data.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            // Determine which columns to display (Intersection of default and actual headers)
+            const displayColumns = DEFAULT_DISPLAY_COLUMNS.filter(col => allHeaders.includes(col));
+
+            // 1. Render Table Headers
+            displayColumns.forEach(column => {
+                const th = document.createElement('th');
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = column.replace(/([A-Z])/g, ' $1').trim();
+                tableHeaders.appendChild(th);
+            });
+
+            data.forEach(item => {
+                // 2. Desktop Table Row
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition duration-150';
+
+                displayColumns.forEach(column => {
+                    const cell = document.createElement('td');
+                    cell.className = 'px-6 py-4 whitespace-nowrap text-sm';
+                    const value = item[column] || '';
+
+                    if (column === 'Current Employee Rating') {
+                        cell.innerHTML = renderRating(value);
+                        cell.classList.add('text-gray-500');
+                    } else if (column === 'EmployeeStatus') {
+                        cell.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClasses(value)}">${value}</span>`;
+                        cell.classList.remove('whitespace-nowrap');
+                    } else if (column === 'FirstName' && displayColumns.includes('LastName')) {
+                        // Combine name cell
+                        cell.textContent = `${item.FirstName} ${item.LastName}`;
+                        cell.classList.add('font-medium', 'text-gray-900');
+                        row.appendChild(cell);
+                    } else if (column === 'LastName' && displayColumns.includes('FirstName')) {
+                        // Skip LastName if FirstName is present as we combined them
+                        return;
+                    } else {
+                        cell.textContent = value;
+                        cell.classList.add('text-gray-500');
+                    }
+                    row.appendChild(cell);
+                });
+                tableBody.appendChild(row);
+
+
+                // 3. Mobile Card
+                const fullName = (item.FirstName && item.LastName) ? `${item.FirstName} ${item.LastName}` : item[allHeaders[0]]; // Fallback to first column
+                const status = item.EmployeeStatus || '';
+                const title = item.Title || '';
+                const rating = item['Current Employee Rating'] || '';
+
+                const card = `
+                    <div class="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="text-lg font-bold text-gray-900">${fullName}</p>
+                            ${status ? `<span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClasses(status)}">${status}</span>` : ''}
+                        </div>
+                        ${title ? `<p class="text-sm text-gray-700 mb-1">${title}</p>` : ''}
+                        <div class="text-xs text-gray-500 flex flex-wrap gap-2">
+                           ${item.DepartmentType ? `<span>Dept: ${item.DepartmentType.trim()}</span>` : ''}
+                           ${rating ? `<span>Rating: ${renderRating(rating)}</span>` : ''}
+                           ${item['Overall Satisfaction'] ? `<span>Satisfaction: ${item['Overall Satisfaction']}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                cardsContainer.insertAdjacentHTML('beforeend', card);
+            });
+        }
+
+        // --- FILTER PANEL LOGIC ---
+
+        /**
+         * Renders the dynamic checkboxes for columns selected by the user.
+         */
+        function renderFilters() {
+            const panel = document.getElementById('filter-panel');
+            // Remove existing filters (keeps the header and reset button)
+            Array.from(panel.children).forEach(child => {
+                if (!['H2', 'BUTTON'].includes(child.tagName)) {
+                    child.remove();
+                }
+            });
+
+            selectedFilterColumns.forEach(column => {
+                const uniqueValues = allUniqueValues[column];
+                if (!uniqueValues || uniqueValues.length === 0) return;
+
+                const filterSection = document.createElement('div');
+                filterSection.className = 'mb-6 p-4 bg-gray-50 rounded-lg shadow-sm';
+                filterSection.innerHTML = `
+                    <h3 class="font-semibold text-gray-700 mb-2 border-b border-gray-200 pb-1">${column.replace(/([A-Z])/g, ' $1').trim()}</h3>
+                    <div id="filter-${column.replace(/\s/g, '-')}" class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                        ${uniqueValues.map(value => `
+                            <label class="flex items-center text-sm text-gray-600 hover:text-primary-600 transition duration-100 cursor-pointer">
+                                <input type="checkbox" data-column="${column}" data-value="${value}" class="filter-checkbox h-4 w-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500">
+                                <span class="ml-2">${value}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                panel.appendChild(filterSection);
+            });
+
+            // Attach event listeners to all newly created filter checkboxes
+            document.querySelectorAll('.filter-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', applyFilters);
+            });
+            document.getElementById('filter-panel').classList.remove('hidden');
+        }
+
+        /**
+         * Reads the state of all filter checkboxes and filters the global data array.
+         */
+        function applyFilters() {
+            const selectedFilters = {};
+            const checkboxes = document.querySelectorAll('.filter-checkbox:checked');
+
+            checkboxes.forEach(checkbox => {
+                const column = checkbox.dataset.column;
+                const value = checkbox.dataset.value;
+
+                if (!selectedFilters[column]) {
+                    selectedFilters[column] = new Set();
+                }
+                selectedFilters[column].add(value);
+            });
+
+            // If no filters are selected, show all data
+            if (Object.keys(selectedFilters).length === 0) {
+                renderResults(globalData);
+                return;
+            }
+
+            const filteredData = globalData.filter(item => {
+                // An item must satisfy ALL column filters (AND logic)
+                for (const column of Object.keys(selectedFilters)) {
+                    const itemValue = item[column];
+                    const selectedValues = selectedFilters[column];
+
+                    // If the item's value is NOT in the set of selected values for this column, exclude the item.
+                    if (!selectedValues.has(itemValue)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            renderResults(filteredData);
+        }
+
+        // --- COLUMN SELECTION LOGIC ---
+
+        /**
+         * Renders checkboxes for all available columns after file upload.
+         */
+        function renderColumnSelector() {
+            const selectorBody = document.getElementById('column-selector-body');
+            selectorBody.innerHTML = '';
+
+            allHeaders.forEach(column => {
+                const filterable = allUniqueValues[column] && allUniqueValues[column].length > 1;
+                const isChecked = selectedFilterColumns.includes(column);
+
+                const label = document.createElement('label');
+                label.className = `flex items-center text-sm transition duration-100 cursor-pointer ${filterable ? 'text-gray-700 hover:text-primary-600' : 'text-gray-400 cursor-not-allowed'}`;
+                label.innerHTML = `
+                    <input type="checkbox" data-column="${column}" ${isChecked ? 'checked' : ''} ${!filterable ? 'disabled' : ''} class="column-selector-checkbox h-4 w-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500">
+                    <span class="ml-2">${column.replace(/([A-Z])/g, ' $1').trim()} ${!filterable ? ' (Non-filterable)' : ''}</span>
+                `;
+                selectorBody.appendChild(label);
+            });
+
+            document.querySelectorAll('.column-selector-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handleColumnSelectionChange);
+            });
+
+            document.getElementById('column-selection-panel').classList.remove('hidden');
+        }
+
+        /**
+         * Updates the list of selected filter columns and re-renders the filter panel.
+         */
+        function handleColumnSelectionChange() {
+            selectedFilterColumns = [];
+            document.querySelectorAll('.column-selector-checkbox:checked').forEach(checkbox => {
+                selectedFilterColumns.push(checkbox.dataset.column);
+            });
+
+            // Re-render filters based on the new selection
+            renderFilters();
+            applyFilters();
+        }
+
+        // --- FILE HANDLING ---
+
+        /**
+         * Handles the file selection event, reads the file, and loads the data.
+         * @param {Event} event - The file input change event.
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loading-message').innerHTML = '<p class="text-lg font-semibold text-yellow-800">Processing file... Please wait.</p>';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvString = e.target.result;
+
+                try {
+                    const { data, headers } = parseCSV(csvString);
+
+                    if (data.length === 0) {
+                        throw new Error("The file is empty or headers could not be read.");
+                    }
+
+                    globalData = data;
+                    allHeaders = headers;
+
+                    // 1. Extract Unique Values for ALL Headers
+                    allUniqueValues = {};
+                    allHeaders.forEach(column => {
+                        allUniqueValues[column] = getUniqueValues(globalData, column);
+                    });
+
+                    // 2. Automatically select some meaningful filters initially (if they exist)
+                    selectedFilterColumns = DEFAULT_DISPLAY_COLUMNS.filter(col => allHeaders.includes(col) && allUniqueValues[col].length > 1);
+
+                    // 3. Render Column Selector, Filters, and Results
+                    renderColumnSelector();
+                    renderFilters();
+                    applyFilters();
+
+                    // 4. Update UI visibility
+                    document.getElementById('loading-message').classList.add('hidden');
+                    document.getElementById('data-view').classList.remove('hidden');
+                } catch (error) {
+                    console.error("Error processing file:", error);
+                    document.getElementById('loading-message').innerHTML = `<p class="text-lg font-semibold text-red-800">Error loading data: ${error.message}</p>`;
+                    document.getElementById('data-view').classList.add('hidden');
+                    document.getElementById('column-selection-panel').classList.add('hidden');
+                    document.getElementById('filter-panel').classList.add('hidden');
+                    globalData = [];
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- UTILITY FUNCTIONS FOR RENDERING (STATUS/RATING) ---
+
+        /**
+         * Gets appropriate Tailwind classes for the employee status tag.
+         */
+        function getStatusClasses(status) {
+            const cleanStatus = (status || '').toLowerCase();
+            if (cleanStatus.includes('active')) return 'bg-primary-100 text-primary-800';
+            if (cleanStatus.includes('terminated') || cleanStatus.includes('exit')) return 'bg-red-100 text-red-800';
+            if (cleanStatus.includes('leave') || cleanStatus.includes('absence')) return 'bg-yellow-100 text-yellow-800';
+            return 'bg-gray-100 text-gray-800';
+        }
+
+        /**
+         * Renders the rating using star icons.
+         */
+        function renderRating(rating) {
+            const numRating = parseInt(rating, 10);
+            if (isNaN(numRating) || numRating < 0 || numRating > 5) return 'N/A';
+
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                const color = i < numRating ? 'text-yellow-400' : 'text-gray-300';
+                // Icon: Star (filled or empty)
+                stars += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 inline-block ${color}">
+                            <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
+                          </svg>`;
+            }
+            return `<div class="inline-block whitespace-nowrap">${stars}</div>`;
+        }
+
+        // --- INITIALIZATION ---
+
+        function initializeApp() {
+            // Setup initial UI state
+            document.getElementById('data-view').classList.add('hidden');
+            document.getElementById('loading-message').classList.remove('hidden');
+
+            // 1. Setup Event Listeners
+            document.getElementById('csv-file-input').addEventListener('change', handleFileSelect);
+
+            // 2. Setup Reset Button (will be attached after data load)
+            document.getElementById('reset-button').addEventListener('click', () => {
+                document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
+                // Also clear column selection checkboxes for a full reset
+                document.querySelectorAll('.column-selector-checkbox').forEach(cb => cb.checked = false);
+                selectedFilterColumns = []; // Clear filter columns
+                renderFilters(); // Re-render filter panel (will be empty)
+                applyFilters(); // Apply filter (will show all data)
+            });
+        }
+
+        // Start the application when the window loads
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
