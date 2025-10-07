@@ -7,7 +7,7 @@
 [![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Enabled-brightgreen?logo=scikit-learn)](https://scikit-learn.org/)
 [![Flask](https://img.shields.io/badge/Flask-Backend-black?logo=flask)](https://flask.palletsprojects.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-UI-red?logo=streamlit)](https://streamlit.io/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![License: BSL-1.0](https://img.shields.io/badge/License-Boost_Software_License_1.0-orange)](LICENSE)
 
 > A multi-output ML model that predicts employee **attrition risk, performance, satisfaction level, and rating** — enabling HR teams to make data-driven decisions.
 
