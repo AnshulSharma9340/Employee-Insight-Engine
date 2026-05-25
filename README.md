@@ -1,150 +1,122 @@
 <div align="center">
 
-# 🧠 Employee Insight AI  
+# 🧠 Employee Insight Engine
 ### _Intelligent Predictive Analytics for Workforce Decisions_
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
-[![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Enabled-brightgreen?logo=scikit-learn)](https://scikit-learn.org/)
-[![Flask](https://img.shields.io/badge/Flask-Backend-black?logo=flask)](https://flask.palletsprojects.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-UI-red?logo=streamlit)](https://streamlit.io/)
-[![License: BSL-1.0](https://img.shields.io/badge/License-Boost_Software_License_1.0-orange)](LICENSE)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5.1-orange?logo=scikit-learn)](https://scikit-learn.org/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> A multi-output ML model that predicts employee **attrition risk, performance, satisfaction level, and rating** — enabling HR teams to make data-driven decisions.
+A unified Streamlit dashboard that hosts **three machine-learning models** for HR analytics — all behind a single sidebar selector.
 
 </div>
 
 ---
 
-## 🌟 Overview
-**Employee Insight AI** is a next-generation HR analytics solution built using **machine learning**.  
-It processes employee data to predict four major outcomes:
+## 🌟 What it does
 
-- 🧳 **Attrition Risk** → Probability of employee leaving  
-- 📈 **Performance Score** → Predicts if employee meets or exceeds expectations  
-- 😊 **Satisfaction Level** → Estimates morale and engagement  
-- ⭐ **Current Rating** → Predicts numerical performance rating (1–5 scale)
-
-This project is ideal for **HR analysts, data scientists, and organizations** seeking smarter workforce analytics.
+| Page | Model | What it predicts |
+| --- | --- | --- |
+| 🧠 **Full Predictive Analytics** | 4× RandomForest (3 classifiers + 1 regressor) | Attrition risk, performance score, satisfaction, rating (1-5) — all at once |
+| 👨‍💼 **Attrition (Pipeline)** | Logistic Regression pipeline (IBM HR-Analytics dataset) | Probability of an employee leaving the company |
+| 🏭 **Garment Productivity** | XGBoost RandomForest regressor | Predicted worker productivity (0-1) from factory-floor metrics |
 
 ---
 
-## 📊 Example Predictive Results
+## 📁 Repo layout
 
-Full Predictive Analytics Results
-Attrition Risk: High (Probability: 53.2%)
-
-Performance Score: Fully Meets (Encoded Value: 3)
-
-Satisfaction Level: High (Encoded Value: 4)
-
-Current Rating: 2.97 (Rounded: 3)
-
-yaml
-Copy code
+```
+Employee-Insight-Engine/
+├── streamlit_app.py                ← unified entry point (deploy this)
+├── requirements.txt                ← pinned ML deps
+├── runtime.txt                     ← Python 3.11
+├── .streamlit/config.toml          ← theme
+│
+├── All Four model prediction/      ← page 1 artifacts
+│   ├── app.py
+│   ├── rf_attrition_model.joblib
+│   ├── rf_performance_model.joblib
+│   ├── rf_satisfaction_model.joblib
+│   ├── rf_rating_model.joblib
+│   ├── attrition_features.joblib
+│   ├── performance_features.joblib
+│   ├── satisfaction_features.joblib
+│   ├── rating_features.joblib
+│   ├── scaler.joblib
+│   └── main.ipynb
+│
+├── Employee Attrition Prediction/  ← page 2 artifacts
+│   ├── app.py
+│   ├── hr_attrition_log_reg_pipeline.joblib
+│   └── HR Analytics - Predict Employee Attrition.ipynb
+│
+└── Employee_Performance_Prediction/ ← page 3 artifacts
+    ├── app.py
+    ├── model.h5                    (actually a pickled XGBRFRegressor)
+    └── Emp_Performance_Analysis.ipynb
+```
 
 ---
 
-## 🧠 Model Workflow
+## 🚀 Run locally
 
-flowchart LR
-A[Employee Data] --> B[Data Preprocessing]
-B --> C[Feature Encoding & Scaling]
-C --> D[Machine Learning Model]
-D --> E[Multi-output Predictions]
-E --> F[Visualization / Dashboard]
-⚙️ Tech Stack
-Category	Tools & Technologies
-Language	Python 🐍
-Libraries	Pandas, NumPy, Scikit-learn, Matplotlib, Pickle
-Framework	Flask / Streamlit
-Model Type	Multi-Output Classification & Regression
-Dataset	Employee Analytics Data (CSV / Excel)
+```bash
+git clone https://github.com/AnshulSharma9340/Employee-Insight-Engine.git
+cd Employee-Insight-Engine
 
-🚀 Installation & Setup
-🔹 1. Clone the Repository
-bash
-Copy code
-git clone https://github.com/your-username/employee-insight-ai.git
-cd employee-insight-ai
-🔹 2. Install Dependencies
-bash
-Copy code
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS / Linux
+source venv/bin/activate
+
 pip install -r requirements.txt
-🔹 3. Run the App
-For Streamlit Interface:
+streamlit run streamlit_app.py
+```
 
-bash
-Copy code
-streamlit run app.py
-Or Flask Backend:
+The app opens at http://localhost:8501. The sidebar lets you switch between the three pages.
 
-bash
-Copy code
-python app.py
-📁 Folder Structure
-text
-Copy code
-employee-insight-ai/
-├── app.py
-├── model/
-│   ├── trained_model.pkl
-│   ├── scaler.pkl
-│   ├── model_columns.pkl
-├── data/
-│   └── employee_data.csv
-├── static/
-├── templates/
-│   └── index.html
-├── requirements.txt
-└── README.md
-<details> <summary>🧩 <b>Feature Details</b> (click to expand)</summary>
-Feature	Description
-Attrition Risk Prediction	Predicts how likely an employee is to leave the company
-Performance Score	Estimates performance level (Below, Meets, Exceeds)
-Satisfaction Level	Measures employee satisfaction on qualitative scale
-Current Rating	Predicts rating between 1–5 based on multiple metrics
+---
 
-</details>
-🧪 Model Pipeline
-Data Preprocessing – Cleans and encodes categorical features
+## ☁️ Deploy on Streamlit Community Cloud
 
-Feature Scaling – Normalizes numerical data
+It's free and takes 5 clicks.
 
-Model Training – Uses classification/regression algorithms
+1. Push this repo to GitHub.
+2. Go to https://share.streamlit.io and sign in with your GitHub account.
+3. Click **"Create app" → "Deploy a public app from GitHub"**.
+4. Fill in:
+   - **Repository:** `AnshulSharma9340/Employee-Insight-Engine`
+   - **Branch:** `main`
+   - **Main file path:** `streamlit_app.py`
+5. Click **Deploy**.
 
-Prediction – Outputs encoded & readable results
+Streamlit Cloud reads `requirements.txt`, installs the pinned dependencies, and serves the app at a `https://<your-slug>.streamlit.app` URL. First build takes about 2-3 minutes (scikit-learn + xgboost).
 
-Visualization – Displays data insights and probabilities
+### ⚠️ Important: version pinning
 
-🌐 Use Cases
-🧩 HR Teams: Predict and reduce attrition before it happens
+The model artifacts were saved with **scikit-learn 1.5.1**. `requirements.txt` pins that exact version — if you bump sklearn later, the attrition pipeline (`hr_attrition_log_reg_pipeline.joblib`) will fail to unpickle because it references private classes (`_RemainderColsList`) that change between minor versions. If you want to upgrade, retrain the models from the notebooks and re-export the artifacts.
 
-📈 Managers: Evaluate team satisfaction and performance trends
+---
 
-🧮 Data Analysts: Build workforce dashboards and analytics pipelines
+## 🧪 Retraining
 
-🔮 Future Enhancements
+Each model has its own Jupyter notebook in its subfolder:
 
+- `All Four model prediction/main.ipynb`
+- `Employee Attrition Prediction/HR Analytics - Predict Employee Attrition.ipynb`
+- `Employee_Performance_Prediction/Emp_Performance_Analysis.ipynb`
 
-🔁 Continuous model retraining pipeline
+Run those to regenerate the `.joblib` / `.h5` artifacts.
 
-🤖 AI-powered recommendations for employee retention
+---
 
+## 👨‍💻 Author
 
+**Anshul Sharma** — B.Tech Data Science
+[@AnshulSharma9340](https://github.com/AnshulSharma9340)
 
-👨‍💻 Developer
-Anshul Sharma
-🎓 B.Tech Data Science | 💼 Data Scientist & Software Engineer
-📍 India
+## 🪪 License
 
-
-
-
-🪪 License
-This project is licensed under the MIT License – you're free to use, modify, and distribute it.
-
-<div align="center">
-⭐ If you like this project, consider giving it a star!
-Your support keeps the innovation going.
-
-</div> 
+MIT — see [LICENSE](LICENSE).
